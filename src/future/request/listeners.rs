@@ -9,7 +9,9 @@ type Callback = Closure<dyn FnMut(web_sys::Event) + 'static>;
 /// represents the value on an event.target.result
 #[derive(Debug)]
 pub enum EventTargetResult {
+    /// the event.target.result was null
     Null,
+    /// the event.target.result was not null
     NotNull,
 }
 
