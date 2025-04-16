@@ -389,25 +389,31 @@ pub mod cursor {
                 b: u32,
                 key: u32,
             }
-            let data = Foo {
+            let data_1 = Foo {
                 a: "hello".to_string(),
                 b: 42,
                 key: 1,
+            };
+            let data_2 = Foo {
+                a: "world".to_string(),
+                b: 42,
+                key: 2,
             };
             // seed db
             {
                 open_tx!(db, Readwrite > (tx, store));
 
-                store.add(data.clone()).serde().unwrap().await.unwrap();
+                store.add(data_1.clone()).serde().unwrap().await.unwrap();
+                store.add(data_2.clone()).serde().unwrap().await.unwrap();
                 drop(store);
                 tx.commit().await.unwrap();
             }
             open_tx!(db, Readonly > (tx, store));
             let cursor = store.open_cursor().serde().unwrap().await.unwrap().unwrap();
-            let res: Result<Vec<_>, _> = cursor.stream_ser::<Foo>().try_collect().await;
-            let res = res.unwrap();
-            assert_eq!(res.len(), 1);
-            assert_eq!(res.first().unwrap(), &data)
+            let res: Vec<Foo> = cursor.stream_ser::<Foo>().try_collect().await.unwrap();
+            assert_eq!(res.len(), 2);
+            assert_eq!(res.first().unwrap(), &data_1);
+            assert_eq!(res.get(1).unwrap(), &data_2);
         }
 
         #[wasm_bindgen_test]
