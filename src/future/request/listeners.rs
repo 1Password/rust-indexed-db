@@ -1,5 +1,6 @@
 use super::super::traits::*;
-use crate::{cursor::CursorSys, error::UnexpectedDataError};
+use crate::error::UnexpectedDataError;
+use cfg_if::cfg_if;
 use std::task::{Context, Poll};
 use tokio::sync::mpsc;
 use wasm_bindgen::prelude::*;
@@ -11,7 +12,8 @@ pub enum EventTargetResult {
     /// the event.target.result was null
     Null,
     /// the event.target.result was a [`web_sys::IdbCursor`] instance
-    Cursor(CursorSys),
+    #[cfg(feature = "cursors")]
+    Cursor(crate::cursor::CursorSys),
     /// the event.target.result was not null
     NotNull,
 }
@@ -37,10 +39,19 @@ impl Listeners {
 
             let _ = tx.try_send(match non_null_result {
                 None => EventTargetResult::Null,
-                Some(val) => match val.dyn_into::<CursorSys>() {
-                    Ok(cursor) => EventTargetResult::Cursor(cursor),
-                    Err(_) => EventTargetResult::NotNull,
-                },
+                #[cfg_attr(not(feature = "cursors"), expect(unused_variables))]
+                Some(val) => {
+                    cfg_if! {
+                        if #[cfg(feature = "cursors")] {
+                             match val.dyn_into::<crate::cursor::CursorSys>() {
+                                Ok(cursor) => EventTargetResult::Cursor(cursor),
+                                Err(_) => EventTargetResult::NotNull,
+                            }
+                        } else {
+                            EventTargetResult::NotNull
+                        }
+                    }
+                }
             });
         }));
 
