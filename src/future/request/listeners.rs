@@ -1,5 +1,5 @@
 use super::super::traits::*;
-use crate::error::UnexpectedDataError;
+use crate::{cursor::CursorSys, error::UnexpectedDataError};
 use std::task::{Context, Poll};
 use tokio::sync::mpsc;
 use wasm_bindgen::prelude::*;
@@ -7,10 +7,11 @@ use wasm_bindgen::prelude::*;
 type Callback = Closure<dyn FnMut(web_sys::Event) + 'static>;
 
 /// represents the value on an event.target.result
-#[derive(Debug)]
 pub enum EventTargetResult {
     /// the event.target.result was null
     Null,
+    /// the event.target.result was a [`web_sys::IdbCursor`] instance
+    Cursor(CursorSys),
     /// the event.target.result was not null
     NotNull,
 }
@@ -26,14 +27,20 @@ impl Listeners {
         let (tx, rx) = mpsc::channel(1);
 
         let callback = Callback::wrap(Box::new(move |e: web_sys::Event| {
-            let result = e
+            let non_null_result = e
                 .target()
                 .map(JsValue::from)
-                .map(|val| js_sys::Reflect::get(&val, &JsValue::from("result")));
-            let _ = tx.try_send(match result {
+                // get the event.target.result
+                .and_then(|val| js_sys::Reflect::get(&val, &JsValue::from("result")).ok())
+                // make sure its not null or undefined
+                .filter(|val| !val.is_undefined() && !val.is_null());
+
+            let _ = tx.try_send(match non_null_result {
                 None => EventTargetResult::Null,
-                Some(Ok(val)) if val.is_undefined() | val.is_null() => EventTargetResult::Null,
-                Some(Ok(_) | Err(_)) => EventTargetResult::NotNull,
+                Some(val) => match val.dyn_into::<CursorSys>() {
+                    Ok(cursor) => EventTargetResult::Cursor(cursor),
+                    Err(_) => EventTargetResult::NotNull,
+                },
             });
         }));
 
