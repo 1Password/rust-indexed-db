@@ -39,9 +39,9 @@ impl UntypedRequest {
         }
     }
 
-    fn poll_request(req: &web_sys::IdbRequest) -> Poll<crate::Result<()>> {
+    fn poll_request<T>(req: &web_sys::IdbRequest, v: T) -> Poll<crate::Result<T>> {
         if matches!(req.ready_state(), IdbRequestReadyState::Done) {
-            Poll::Ready(Self::req_to_result(req, ()))
+            Poll::Ready(Self::req_to_result(req, v))
         } else {
             Poll::Pending
         }
@@ -62,8 +62,8 @@ impl PollUnpinned for UntypedRequest {
         match self {
             Self::WithListeners(listeners) => listeners.poll_unpinned(cx),
             Self::Bare(req) => {
-                if let Poll::Ready(res) = Self::poll_request(req) {
-                    Poll::Ready(res.map(|()| EventTargetResult::NotNull))
+                if let Poll::Ready(res) = Self::poll_request(req, EventTargetResult::NotNull) {
+                    Poll::Ready(res)
                 } else {
                     let mut listeners = Self::create_listeners(req);
                     let out = listeners.poll_unpinned(cx);

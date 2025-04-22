@@ -1,9 +1,8 @@
-mod listeners;
+pub(crate) mod listeners;
 mod untyped;
 
 use crate::internal_utils::SystemRepr;
 use internal_macros::{FutureFromPollUnpinned, StructNameDebug};
-pub use listeners::EventTargetResult;
 use listeners::Listeners;
 use sealed::sealed;
 use std::marker::PhantomData;
@@ -63,11 +62,22 @@ impl PollUnpinned for Request {
 }
 
 #[sealed]
-impl PollUnpinned for Request<()> {
-    type Output = crate::Result<EventTargetResult>;
+#[cfg(feature = "cursors")]
+impl PollUnpinned for Request<listeners::EventTargetResult> {
+    type Output = crate::Result<listeners::EventTargetResult>;
 
     #[inline]
     fn poll_unpinned(&mut self, cx: &mut Context) -> Poll<Self::Output> {
         self.inner.poll_unpinned(cx)
+    }
+}
+
+#[sealed]
+impl PollUnpinned for Request<()> {
+    type Output = crate::Result<()>;
+
+    #[inline]
+    fn poll_unpinned(&mut self, cx: &mut Context) -> Poll<Self::Output> {
+        self.inner.poll_unpinned(cx).map(|res| res.map(|_| ()))
     }
 }

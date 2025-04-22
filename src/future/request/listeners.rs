@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 type Callback = Closure<dyn FnMut(web_sys::Event) + 'static>;
 
 /// represents the value on an event.target.result
-pub enum EventTargetResult {
+pub(crate) enum EventTargetResult {
     /// the event.target.result was null
     Null,
     /// the event.target.result was a [`web_sys::IdbCursor`] instance

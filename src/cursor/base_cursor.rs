@@ -1,5 +1,6 @@
 use super::{CursorDirection, CursorSys};
-use crate::future::{EventTargetResult, PollUnpinned, VoidRequest};
+use crate::future::request::listeners::EventTargetResult;
+use crate::future::{PollUnpinned, Request};
 use crate::internal_utils::SystemRepr;
 use crate::primitive::{TryFromJs, TryToJs};
 use fancy_constructor::new;
@@ -27,7 +28,7 @@ pub(crate) enum CursorState {
     TryNext,
 
     /// We are currently reading the next record.
-    ReadingNext(VoidRequest),
+    ReadingNext(Request<EventTargetResult>),
 }
 
 impl BaseCursor {
@@ -108,8 +109,8 @@ impl BaseCursor {
         self.as_sys().direction()
     }
 
-    pub(crate) fn req(&self) -> VoidRequest {
-        VoidRequest::new(self.as_sys().req())
+    pub(crate) fn req(&self) -> Request<EventTargetResult> {
+        Request::new(self.as_sys().req())
     }
 
     pub(crate) fn poll_state<R, F>(

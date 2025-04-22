@@ -5,7 +5,7 @@ pub use basic::BasicRequest;
 pub use get_all::*;
 pub use maybe_errored::MaybeErrored;
 pub use open_db::{OpenDbListener, OpenDbRequest};
-pub use request::{EventTargetResult, Request, VoidRequest};
+pub use request::{Request, VoidRequest};
 pub use traits::*;
 
 mod array_map;
@@ -13,7 +13,7 @@ mod basic;
 mod get_all;
 mod maybe_errored;
 mod open_db;
-mod request;
+pub(crate) mod request;
 mod traits;
 
 iffeat! {
